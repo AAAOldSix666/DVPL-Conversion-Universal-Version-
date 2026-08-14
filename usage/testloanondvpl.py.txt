@@ -1,0 +1,37 @@
+import ctypes
+import os
+
+# 1. Load DLL from a/DvplConversion folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+dll_dir = os.path.join(current_dir, "DvplConversion")
+dll_path = os.path.join(dll_dir, "DVPLConversion.Core.dll")
+
+# Load the DLL
+dll = ctypes.CDLL(dll_path)
+
+# 2. Set function argument types
+dll.SaveDvplFile.argtypes = [
+    ctypes.POINTER(ctypes.c_uint8),  # inputData
+    ctypes.c_size_t,                 # dataLength
+    ctypes.c_char_p                  # outputPath
+]
+dll.SaveDvplFile.restype = ctypes.c_int
+
+# 3. Set input path & output path
+in_path = os.path.join(current_dir, "Leopard1_skin2.dx11.dds")
+out_path = os.path.join(os.path.expanduser("~"), "Desktop", "Leopard1_skin2.dx11.dds.dvpl")
+
+# 4. Read raw data
+with open(in_path, 'rb') as f:
+    raw = f.read()
+
+# Convert bytes to c_uint8 array
+raw_array = (ctypes.c_uint8 * len(raw)).from_buffer_copy(raw)
+
+# 5. Use SaveDvplFile to encrypt file
+ret = dll.SaveDvplFile(raw_array, len(raw), out_path.encode('utf-8'))
+
+if ret != 0:
+    raise RuntimeError(f'SaveDvplFile failed with code {ret}')
+else:
+    print(f"Successfully saved to: {out_path}")

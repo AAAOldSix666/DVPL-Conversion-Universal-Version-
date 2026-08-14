@@ -1,0 +1,47 @@
+import ctypes
+import os
+
+# 1. Load DLL from a/DvplConversion folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+dll_dir = os.path.join(current_dir, "DvplConversion")
+dll_path = os.path.join(dll_dir, "DVPLConversion.Core.dll")
+
+# Load the DLL
+dll = ctypes.CDLL(dll_path)
+
+# 2. Set function argument types
+dll.LoadDvplFile.argtypes = [
+    ctypes.c_char_p,                 # filePath
+    ctypes.POINTER(ctypes.c_void_p), # outputBuffer
+    ctypes.POINTER(ctypes.c_size_t)  # outputSize
+]
+dll.LoadDvplFile.restype = ctypes.c_int
+
+dll.FreeDvplData.argtypes = [ctypes.POINTER(ctypes.c_uint8)]
+dll.FreeDvplData.restype = None
+
+# 3. Path to dvpl-file
+path_o = os.path.join(current_dir, "Leopard1_skin2.dx11.dds.dvpl")
+path = path_o.encode('utf-8')
+
+# 4. Define pointers
+data = ctypes.c_void_p()
+size = ctypes.c_size_t()
+
+# 5. Load dvpl-file
+ret = dll.LoadDvplFile(path, ctypes.byref(data), ctypes.byref(size))
+
+if ret != 0:
+    raise RuntimeError(f'LoadDvplFile failed with code {ret}')
+
+# 6. Output the data in dvpl-file
+raw = ctypes.string_at(data.value, size.value)
+
+out_path = os.path.join(current_dir, "Leopard1_skin2.dx11.dds")
+with open(out_path, 'wb') as f:
+    f.write(raw)
+
+print(f"Successfully extracted to: {out_path}")
+
+# 7. Free C-allocated memory
+dll.FreeDvplData(ctypes.cast(data, ctypes.POINTER(ctypes.c_uint8)))
